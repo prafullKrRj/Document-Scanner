@@ -78,38 +78,13 @@ import java.time.LocalDateTime
 import java.util.Date
 import java.util.Locale
 
-object PdfHandler {
-    fun createAccessibleUri(context: Context, originalUri: Uri): Uri? {
-        return try {
-            // Create a file in your app's cache directory
-            val fileName = "temp_${System.currentTimeMillis()}.pdf"
-            val cacheFile = File(context.cacheDir, fileName)
 
-            context.contentResolver.openInputStream(originalUri)?.use { input ->
-                FileOutputStream(cacheFile).use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                cacheFile
-            )
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UI(viewModel: MainViewModel) {
     val activity = LocalContext.current as Activity
     val createdDocuments by viewModel.createdDocuments.collectAsState()
-    val context = LocalContext.current
 
 
     val savePdf =
