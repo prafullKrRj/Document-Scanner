@@ -35,13 +35,9 @@ class MainViewModel : ViewModel(), KoinComponent {
 
     private fun getDocuments() {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.getAllDocuments().collectLatest { list ->
-                list.filter { entity ->
-                    entity.uri.exists(context)
-                }.let { entities ->
-                    _createdDocuments.update {
-                        entities
-                    }
+            dao.getAllDocuments().collectLatest { entities ->
+                _createdDocuments.update {
+                    entities
                 }
             }
         }
