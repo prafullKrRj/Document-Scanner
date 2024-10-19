@@ -153,7 +153,7 @@ fun UI(viewModel: MainViewModel) {
                 DocumentCard(
                     id = document.id,
                     created = document.created,
-                    name = document.uri.userInfo.toString(),
+                    name = document.name,
                     path = document.uri.toString(),
                     onCardClick = {
                         try {
