@@ -1,8 +1,10 @@
 package com.prafull.documentscanner.app
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
@@ -61,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_PDF
@@ -68,16 +71,47 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import com.prafull.documentscanner.R
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Date
 import java.util.Locale
+
+object PdfHandler {
+    fun createAccessibleUri(context: Context, originalUri: Uri): Uri? {
+        return try {
+            // Create a file in your app's cache directory
+            val fileName = "temp_${System.currentTimeMillis()}.pdf"
+            val cacheFile = File(context.cacheDir, fileName)
+
+            context.contentResolver.openInputStream(originalUri)?.use { input ->
+                FileOutputStream(cacheFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                cacheFile
+            )
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UI(viewModel: MainViewModel) {
     val activity = LocalContext.current as Activity
     val createdDocuments by viewModel.createdDocuments.collectAsState()
+    val context = LocalContext.current
+
+
     val savePdf =
         rememberLauncherForActivityResult(contract = CreateDocument("application/pdf")) { uri ->
             if (uri != null) {
@@ -97,6 +131,7 @@ fun UI(viewModel: MainViewModel) {
                 }
             }
         }
+
     Scaffold(Modifier.fillMaxSize(), floatingActionButton = {
         NewPdfButton(activity = activity, viewModel = viewModel) {
             val fileName = "Document_${LocalDateTime.now()}.pdf"
@@ -118,11 +153,15 @@ fun UI(viewModel: MainViewModel) {
                 DocumentCard(
                     id = document.id,
                     created = document.created,
-                    name = document.name,
-                    uri = document.uri,
+                    name = document.uri.userInfo.toString(),
+                    path = document.uri.toString(),
                     onCardClick = {
-                        openPdf(document.uri, activity)
-                    }
+                        try {
+                            sharePdf(activity, document.uri)
+                        } catch (e: Exception) {
+                            Log.d("Opening Pdf", "Failed to open PDF", e)
+                        }
+                    },
                 ) {
 
                 }
@@ -131,12 +170,11 @@ fun UI(viewModel: MainViewModel) {
     }
 }
 
-fun openPdf(uri: Uri, activity: Activity) {
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/pdf")
-        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-    }
-    activity.startActivity(intent)
+fun sharePdf(activity: Activity, uri: Uri) {
+    val intent = Intent(Intent.ACTION_SEND)
+    intent.type = "application/pdf"
+    intent.putExtra(Intent.EXTRA_STREAM, uri)
+    activity.startActivity(Intent.createChooser(intent, "Share PDF"))
 }
 
 fun showToast(activity: Activity, message: String) {
@@ -182,7 +220,7 @@ fun DocumentCard(
     id: Long,
     created: Long,
     name: String,
-    uri: Uri,
+    path: String,
     onCardClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -313,7 +351,7 @@ fun DocumentCard(
                         DetailRow(
                             icon = ImageVector.vectorResource(id = R.drawable.baseline_link_24),
                             label = "URI",
-                            value = uri.toString(),
+                            value = path,
                             maxLines = 2
                         )
                     }

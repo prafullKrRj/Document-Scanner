@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.prafull.documentscanner.app.UriValidator.exists
 import com.prafull.documentscanner.app.local.DocumentDao
 import com.prafull.documentscanner.app.local.DocumentEntity
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +28,7 @@ class MainViewModel : ViewModel(), KoinComponent {
     private val context: Context by inject()
     private val _createdDocuments = MutableStateFlow<List<DocumentEntity>>(emptyList())
     val createdDocuments = _createdDocuments.asStateFlow()
+
     init {
         getDocuments()
     }

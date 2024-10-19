@@ -12,6 +12,7 @@ data class DocumentEntity(
     val name: String,
     val uri: Uri
 )
+
 class UriConverter {
     @TypeConverter
     fun fromString(value: String?): Uri? {
